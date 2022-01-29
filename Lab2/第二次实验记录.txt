@@ -1,0 +1,490 @@
+
+
+# 0.作者
+
+<p style="font-size:20px;" align=center>冯亚林 191850036</p>
+
+# 1.项目结构
+
+```
+a.img 软盘镜像；因为硬编码，改名就没法正确读取了；
+
+源码文件：
+1.main.cpp主程序
+2.structure.h 头文件，声明了4种数据结构，Sector、FAT、Entry、Directory
+3.structure.cpp  实现数据结构的方法
+4.constants.h 头文件，一些常量
+5.my_print.asm nasm写的输出函数
+
+可执行文件：
+test linux环境下生成的可执行文件
+
+中间代码：
+my_print.o nasm汇编后的中间代码
+```
+
+
+
+# 2.实验目标
+
+知识目标：熟悉掌握FAT12文件系统、gcc+nasm联合编译，了解实模式与保护模式的基本内容。
+
+代码目标：用C/C++和nasm编写一个FAT12镜像查看⼯具，读取一个.img格式的文件并响应用户输入。
+
+​	具体功能：读取FAT12文件、提示用户输入、实现ls功能、实现ls -l功能、实现cat功能；
+
+
+
+# 3.制作FAT12镜像
+
+在虚拟机里制作FAT12镜像
+
+> 创建镜像：
+>
+> <img src="第二次实验记录.assets/1.png" alt="image-20211111125513050" style="zoom: 50%;" />
+>
+> 注意事项：
+>
+> <img src="第二次实验记录.assets/2.png" alt="image-20211111125550873" style="zoom:50%;" />
+
+其实还有一个注意事项：
+
+**linux中的挂载硬盘，除了系统盘，每次开机为什么都要重新挂载一次？**
+
+答：除了系统盘，其他硬盘可以在/etc/fstab中定义是否开机时自动挂载，没有在/etc/fstab定义的挂载硬盘都要开机时重新挂载、
+
+
+
+实验结果：
+
+> 在ubuntu18.04虚拟机里：可以看到目录mount有不同的图标说明挂载成功了；
+>
+> <img src="第二次实验记录.assets/mount.png" alt="图片丢失" style="zoom:50%;" />
+>
+> 可以在里面添加一些目录和文件，以便后面测试；注意要使用带root的权限执行操作
+>
+> <img src="第二次实验记录.assets/mount-16434463558891.png" alt="图片丢失" style="zoom:67%;" />
+>
+> 顺便用sudo apt install tree安装了个tree，用tree看看现在的挂载目录：
+>
+> <img src="第二次实验记录.assets/tree.png" alt="图片丢失" style="zoom:67%;" />
+
+
+
+
+
+**自问：img文件是什么？将img文件挂载到目录上什么意思？挂载后有什么用？**
+
+答：首先，img格式是一种文件压缩格式，主要用于创建软盘的镜像；换句话说，img文件就是软盘镜像。
+
+**那什么是镜像？**镜像就是将一个软件及其运行环境打包后形成的文件包，可以还原为对应的软件。
+
+比如许多操作系统的镜像 iso 文件，创建虚拟机时需要使用。
+
+**挂载又是什么意思？**
+
+最容易记忆的说法是，挂载是将**存储设备与文件系统联系起来**。这样我们就能通过文件系统访问存储设备了。
+
+这里创建了软盘镜像，相当于是有了一个“虚拟软盘”的存储设备，又有了目录mount，将两个挂载起来，就是将二者联系起来，可以通过将文件移入目录来相当于将文件写入软盘。
+
+这些都是**早就学过**的知识，要时时复习。
+
+
+
+# 4.阅读要求，创建项目
+
+仔细阅读要求——确定大概流程——创建项目
+
+> 要求1.
+>
+> <img src="第二次实验记录.assets/要求1.png" alt="image" style="zoom:67%;" />
+>
+> 要求2.
+>
+> <img src="第二次实验记录.assets/要求2.png" alt="image" style="zoom:67%;" />
+>
+> 
+
+
+
+注意这一段：
+
+> 程序由两个源文件构成，main.c(cpp) 和 my_print.asm， **其中main.c(cpp) 是主程序，可以使用 C/C++库**，但是**输出不能使用库函数，要求在my_print.asm中使用汇编编写函数用于输出**。
+>
+
+### 项目分析
+
+项目源码文件：main.cpp, my_print.asm
+
+main程序任务：
+
+​	·读取FAT12镜像文件（可以硬编码），并提示用户输入指令
+
+​	·接收用户输入命令，根据命令具体类型做switch-case； 命令类型： ls 、ls -l、cat、错误命令
+
+​	·用户输入exit，退出程序
+
+​	·输出时要调用my_print.asm里定义的函数，这就涉及到gcc与nasm联合编译
+
+my_print.asm:
+
+​	·职责是定义一个输出函数；可以复用第一次写的IO汇编代码。
+
+
+
+# 5.复用nasm输出函数
+
+> 直接复用第一次写的nasm输出函数，略加修改（删除了64位系统下没有的push a和pop a，修改了函数名）
+>
+> ![image-20211112014831557](第二次实验记录.assets/代码1.png)
+>
+> 
+>
+> 如果要用64位模拟32位，需要注意：~~（但我选择不模拟）~~
+>
+> <img src="第二次实验记录.assets/注意.png" alt="image" style="zoom:50%;" />
+
+
+
+
+
+# 6.测试g++和nasm编译
+
+C++读取文件可以用文件输入流fstream; 提示输入要用到nasm的函数；
+
+
+
+main.cpp和my_print.asm编译链接很容易出错，先写一个简单的main.cpp测试一下；
+
+> <img src="第二次实验记录.assets/代码2.png" alt="image" style="zoom:67%;" />
+
+然后在终端输入：
+
+```bash
+nasm -f elf64 my_print.asm -o my_print.o //生成my_print的中间文件（二进制文件）
+
+gcc -m64 main.cpp my_print.o -o test -no-pie  //用gcc编译main.cpp，并和my_print.o链接，生成可执行程序test, -m64是64位系统下使用
+```
+
+**结果错误**
+
+> ![](第二次实验记录.assets/error.png)
+>
+
+发现了可能解决问题的博客：
+
+https://blog.csdn.net/HermitSun/article/details/102905085
+
+https://blog.csdn.net/wtzhu_13/article/details/105654408
+
+
+
+重新做：
+
+1.用sudo apt install g++-multilb安装g++的库
+
+2.用g++编译
+
+**3.修改了main.cpp里如何引用nasm的函数:**
+
+> **一定要注意extern “C” { }的写法，里面是nasm写的my_print**
+>
+> <img src="第二次实验记录.assets/代码3.png" alt="image-20211112015222151" style="zoom:67%;" />
+
+
+
+重新操作，编译和链接成功，并且运行程序。
+
+
+
+# 7.自动化编译：学习配置makefile
+
+> 配置makefile：
+>
+> ![image-20211116005742004](第二次实验记录.assets/make1.png)
+>
+> 配置好以后，在目录下执行make命令：
+>
+> <img src="第二次实验记录.assets/make2.png" alt="image-20211112210626793" style="zoom:67%;" />
+
+
+
+
+
+以下是没用的个人笔记：
+
+### 什么是 make？(复习)
+
+第一次实验报告里 我写的：
+
+GNU make是一个项目包的高效管理和构建工具，可以**方便地编译、链接多个源代码文件**，**自动**决定哪些源文件需要重新编译（即所谓的高效构建项目）; 它也可以用来卸载项目包; 
+
+### 什么是 makefile？
+
+Makefile 文件描述了 Linux 系统下 C/C++ 工程的编译规则，它用来自动化编译 C/C++ 项目。一旦写编写好 Makefile 文件，只需要一个 make 命令，整个工程就开始自动编译，不再需要手动执行 GCC 命令。
+
+用我自己的话来说：makefile就是**make指令的操作手册**，它写明了需要编译哪些文件、怎么样链接、最后生成什么样的可执行文件，写好makefile以后，make指令就可以“自动化编译”。
+
+### Makefile写法
+
+> <img src="第二次实验记录.assets/make3.png" alt="image-20211112205111562" style="zoom:67%;" />
+
+一些参考：
+
+https://zhuanlan.zhihu.com/p/47390641
+
+http://c.biancheng.net/makefile/
+
+https://blog.csdn.net/afei__/article/details/82696682
+
+https://blog.csdn.net/weixin_33769125/article/details/93958436
+
+
+
+# *8.完善程序
+
+经过以上的步骤，完成了：待读取镜像、nasm的输出函数、自动编译环境；
+
+最后的任务非常简单了，那就是完善
+
+## 8.1 处理的框架：输入—while(true)
+
+> 首先：读取和处理输入
+>
+> ![image-20211117211431520](第二次实验记录.assets/代码4-16434463859682.png)
+
+
+
+运行程序以后可以用 while(true){ 嵌套 if + 终止条件} 搭起一个程序框架；
+
+其中iss是字符串输入流，便于后续利用操作符>>，获取命令项(ls/cat/exit等)
+
+> ![image-20211117211528462](第二次实验记录.assets/image-20211117211528462.png)
+
+
+
+## 8.2 获取命令参数+测试
+
+ls可能有0个——任意个参数，其中最多一个路径，其他可以是-l -ll -lll，也就是可以是任意个-l+
+
+cat后面必须有一个filename
+
+> 1.代码1
+>
+> <img src="第二次实验记录.assets/image-20211113202802309.png" alt="image-20211113202802309" style="zoom:67%;" />
+>
+> 
+>
+> 2.代码2
+>
+> <img src="第二次实验记录.assets/image-20211113202821559.png" alt="image-20211113202821559" style="zoom:67%;" />
+>
+> 3.代码3
+>
+> <img src="第二次实验记录.assets/image-20211113202845659.png" alt="image-20211113202845659" style="zoom:67%;" />
+>
+> 4.成功接收到了参数：
+>
+> <img src="第二次实验记录.assets/image-20211113202942483.png" alt="image-20211113202942483" style="zoom:67%;" />
+
+
+
+## 8.3 完善数据结构
+
+在参考PPT和博客：https://zhuanlan.zhihu.com/p/121807427等后，对FAT12有了基本的认识。
+
+设计了几个数据结构：扇区Sector、FAT12表、目录文件的条目Entry、目录树Directory
+
+其中核心数据结构还是Entry
+
+
+
+> FAT：
+>
+> ![image-20211117210950658](第二次实验记录.assets/image-20211117210950658.png)
+
+> Entry目录的条目：
+>
+> ![image-20211117211007496](第二次实验记录.assets/image-20211117211007496.png)
+>
+> Directory目录树（设计的不好，entries比较多余）：
+>
+> ![image-20211117211106793](第二次实验记录.assets/image-20211117211106793.png)
+
+
+
+## 8.4 输入的路径处理 + 根据路径名找文件
+
+大概流程：
+
+1、首先要定义一个C++下没有的字符串分割函数 split
+
+2、用split对输入的路径做划分，划分字符是 '/'
+
+3、根据划分结果和根目录来查找：
+
+​	路径是否匹配到了某个文件；
+
+​	怎么查找？首先要有一个指向目录树根节点的指针p
+
+​	遇到 "." 指针p不动
+
+​	遇到 ".." 指针p 指向 parent; p=p->parent
+
+​	遇到 文件名 ，指针在自己的childs里找有没有同名的文件 x，有就让 p=x; 没有就报错，并且设置 bool matched=false;
+
+4、返回：没匹配到，返回nullptr；匹配到，返回对应文件的条目Entry
+
+5、输入是千奇百怪的，需要对以上步骤做一些细微的修正；比如如果输入路径是"//////"，那么划分后，全是空串，需要让它正确指向根结点。或者遇到“../../../”这种，要做一些规范化处理；
+
+## 8.5 ls
+
+ls命令最多有2个有用的后续参数：1个是-l，1个是目录
+
+在匹配ls 后面是否有 -l 和 路径名时，要注意正则表达式的运用。
+
+regex(“-l+”)可以匹配 -l 参数；
+
+regex dir_path("(/.*)|(\\./.*)|(\\./.*)|(\\.\\./.*)"); 这个正则用于匹配ls后面是否有路径，但其实不是很准确，勉强能用
+
+
+
+ls的具体执行：
+
+> 1.初始化
+>
+> ![image-20211117211622244](第二次实验记录.assets/image-20211117211622244.png)
+
+
+
+> 2.处理附带参数
+>
+> ![image-20211117211650530](第二次实验记录.assets/image-20211117211650530.png)
+
+
+
+> 3.根据以上两步，确定是哪一种ls，然后确定从哪一个结点开始
+>
+> ![image-20211117211704994](第二次实验记录.assets/image-20211117211704994.png)
+
+
+
+> 4.找到 父结点后，递归的进行输出
+>
+> 5.分类
+>
+> 没有-l
+>
+> 第一行输出是当前路径
+>
+> 第二行输出是当前路径的所有子节点
+>
+> 有-l
+>
+> 就需要多设计2个函数，1个计算目录下直接子目录和直接文件的多少，1个计算文件的字节数；
+>
+> 6.一些细枝末节的修修补补
+
+> 没有-l
+>
+> ![image-20211117211807308](第二次实验记录.assets/image-20211117211807308.png)
+
+
+
+
+
+## 8.6 cat filename
+
+流程： 读入文件名—— 查目录树，找对应条目——找不到，提示——找到条目——>调用函数 cat_file
+
+函数内：寻找条目首簇号——查FAT表，找到所有该文件的簇号——根据簇号查数据区的扇区号——获取数据内容——输出
+
+> ![image-20211117210845287](第二次实验记录.assets/image-20211117210845287.png)
+
+# 9.字符串颜色设置
+
+http://zh.wikipedia.org/wiki/Echo_%28%E5%91%BD%E4%BB%A4%29（wiki）
+
+https://www.cnblogs.com/memset/p/linux_printf_with_color.html
+
+https://blog.csdn.net/qq_29831163/article/details/105027939
+
+https://blog.csdn.net/huntinux/article/details/13998071
+
+直接将表示颜色的串紧贴在要输出的之前就可以了
+
+红色 \033[31m
+
+白色 \033[37m
+
+比如
+
+![image-20211117204655516](第二次实验记录.assets/image-20211117204655516.png)
+
+# 10.踩的大坑
+
+### 1.在linux和windows平台上要注意平台差别；
+
+在虚拟机ubuntu上，我读取起始扇区是没有问题的；
+
+即用 fstream.read(buffer,512);读取512个字节没有问题；
+
+
+
+但在windows上，我用 fstream.read(buffer,512)读取；
+
+发现
+
+buffer[508]=0x55;
+
+buffer[509]=0xaa;
+
+buffer[510]=0xF0;
+
+buffer[511]=0xFF;
+
+也就是说不知道为什么中间漏了2个字节，让起始扇区抢了FAT区的2个字节；
+
+但什么原因我并没有搜到……
+
+
+
+### 2.在windows上调试时
+
+如果想要用nasm写的print还需要配置一些环境，可以先在windows上用cout/printf先输出，移植到虚拟机上时，再把输出换成用nasm写的 print；
+
+在VS2019上配置nasm还是有些麻烦；
+
+
+
+### 3.虚拟机不能启动：SMbus Host Controller not ebable
+
+这篇解决： https://blog.csdn.net/acxm45824/article/details/102032707
+
+https://en.ba-na-na.net/how-to-fix-smbus-host-controller-not-enable-in-vmware/
+
+### 4.虚拟机不能启动：Assuming drive cache:write through
+
+这篇解决：https://blog.csdn.net/m0_38049917/article/details/86705511
+
+# 11.碎碎念
+
+给的4个PPT都看了一遍，没有任何收获。
+
+准备阅读《orange‘s》……读了一下第3、4、5章，收获还是很少；
+
+至少对保护模式、FAT12等有了粗浅认识；
+
+感觉啥都不懂；
+
+继续看PPT；感觉得先制作一个镜像；
+
+—11.13号
+
+我真是大傻逼……我直接在windows上全用cout，到linux上再用nasm输出不就好了，在虚拟机上debug真痛苦
+
+-—11.15号
+
+写了多少天了，终于写出来了，我的代码能力真是一坨shit；
+
+——11.17号

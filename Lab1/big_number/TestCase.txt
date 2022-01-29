@@ -1,0 +1,96 @@
+# 1. 小用例0和1的测试
+
+case1: A=1 B=1
+
+![case1](.\testCase\case1.png)
+
+case2:A=1 B=-1
+
+![case2](.\testCase\case2.png)
+
+case3:A=-1 B=+1
+
+![case](.\testCase\case3.png)
+
+case4:A=+1 B=+1
+
+![case](.\testCase\case4.png)
+
+
+
+case5:A=-1 B=-1
+
+![case](.\testCase\case5.png)
+
+case6:A=0 B=0
+
+![case](.\testCase\case6.png)
+
+case7:A=+0 B=-0
+
+![case](.\testCase\case7.png)
+
+case8:A=+0 B=-1
+
+![case](.\testCase\case8.png)
+
+
+
+case9:A=+1 B=-0
+
+![case](.\testCase\case9.png)
+
+case10: A=+000001 B=-0000000010
+
+![case](.\testCase\case10.png)
+
+# 2. 10个大测试用例
+
+case11: A=2020 B=2019
+
+![case](.\testCase\case11.png)
+
+case12: A=897 B=-97
+
+![case](.\testCase\case12.png)
+
+case13: A=700000 B=-800000
+
+![case](.\testCase\case13.png)
+
+case14: A=7 B=-8
+
+![case](.\testCase\case14.png)
+
+case15: A=123456789 B=-987654321
+
+![case](.\testCase\case15.png)
+
+case16: A=12345678987654321(17位数) B=-12345678987654321(17位数)
+
+精度比科学计算器还高
+
+![case](.\testCase\case16.png)
+
+case17: A=122333444455555(15位数字) B=-12341234123412345(15位数字)
+
+![case](.\testCase\case17.png)
+
+case18: A=100000000000000000000(20个0,21位数) B=100000000000000000000
+
+对比输入的A是21个字节，B是21个字节，加一个字节空格；
+
+而A有20个0，B有20个0，乘起来是40个0；结果加个1是41个字节
+
+可以看出刚好结果对上去少2个字符，可以证明乘积是正确的。
+
+![case](.\testCase\case18.png)
+
+case19: A=100000000000000000000 B=-100000000000000000000
+
+![case](.\testCase\case19.png)
+
+case20: A=-100000000000000000000 B=-100000000000000000000
+
+![case](.\testCase\case20.png)
+

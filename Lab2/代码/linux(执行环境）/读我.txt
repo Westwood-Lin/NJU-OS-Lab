@@ -1,0 +1,55 @@
+# 1.执行环境下的项目结构
+
+**项目源代码：**
+
+​	main.cpp 入口+命令处理程序
+
+​	structure.h  头文件，数据结构的声明，包括Sector、FAT12、目录的条目项Entry、目录树Directory
+
+​	constants.h  头文件，一些常量
+
+​	structure.cpp 数据结构的实现
+
+​	my_print.asm nasm写的输出函数
+
+a.img 映像文件；因为硬编码，改掉文件名程序就不对了
+
+**可执行文件**：**test**
+
+中间代码：my_print.o
+
+**虚拟机的操作系统为ubuntu18.04**
+
+
+
+# 2.windows和linux环境有哪些不同？
+
+### 1.windows上没有配置nasm
+
+因为我的VS2019上没有nasm，也就不能使用my_print，所以windows上的一律是用 cout 输出，linux 上是用 my_print;
+
+
+
+### 2.对齐问题？？
+
+我的主机是64位windows，虚拟机是64位的ubuntu；两者似乎在结构体的对齐问题上不太一样；
+
+在读取a.img的引导扇区时，我发现
+
+用 fstream.read(buffer,512);
+
+ubuntu上毫无问题；
+
+但windows的VS上运行程序时发现 0xaa55 这个结束码居然提前了，也就是在VS2019上：
+
+buffer[508]=0x55
+
+buffer[509]=0xaa 
+
+buffer[510]=0xF0
+
+buffer[511]=0xFF
+
+
+
+查阅资料，发现可能是结构体的对齐问题；
